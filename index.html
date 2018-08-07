@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>orbit controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #000;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+				background-color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color:#000;
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+			}
+			a {
+				color: red;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="info">
+			<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - orbit controls example
+		</div>
+
+		<script src="js/three.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/Detector.js"></script>
+		<script src="js/stats.min.js"></script>
+		<script src="js/OBJLoader.js"></script>
+		<script src="js/tween.min.js"></script>
+
+		<script>
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			var camera, controls, scene, renderer, raycaster;
+			//
+			var container;
+			var mouse= new THREE.Vector2(), INTERSECTED;;
+			var colorWhite, colorRed;
+			var materialR, materialW;
+			var h_01, h_02, h_03;
+			var cone;
+			var x =0;
+			var Top = false;
+			//
+			init();
+			//render(); // remove when using next line for animation loop (requestAnimationFrame)
+			animate();
+			function init() {
+				//mouse = new THREE.Vector2();
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xcccccc );
+				scene.fog = new THREE.FogExp2( 0xcccccc, 0.001 );
+				raycaster = new THREE.Raycaster();
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 400, 200, 0 );
+				// controls
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
+				controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+				controls.dampingFactor = 0.25;
+				controls.screenSpacePanning = false;
+				controls.minDistance = 100;
+				controls.maxDistance = 500
+				controls.maxPolarAngle = Math.PI / 2;
+				// world
+				//var material1
+				materialR = new THREE.MeshPhongMaterial( { color: 0xff0000, flatShading: true } );
+				colorWhite = new THREE.Color( 0xffffff );
+				colorRed = new THREE.Color(0xff0000);
+				//console.log(colorWhite);
+				//var color = new THREE.Color( 0xff0000 ) 
+				var manager = new THREE.LoadingManager();
+				manager.onProgress = function ( item, loaded, total ) {
+					console.log( item, loaded, total );
+				};
+				var textureLoader = new THREE.TextureLoader( manager );
+				//var texture = textureLoader.load( 'textures/UV_Grid_Sm.jpg' );
+				// model
+				var onProgress = function ( xhr ) {
+					if ( xhr.lengthComputable ) {
+						var percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round(percentComplete, 2) + '% downloaded' );
+					}
+				};
+				var onError = function ( xhr ) {
+				};
+				var loader = new THREE.OBJLoader( manager );
+				loader.load( 'js/cityOne.obj', function ( object ) {
+					materialW = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
+					object.traverse( function(child) {
+					if (child instanceof THREE.Mesh) {
+
+					  // apply custom material
+					  child.material = materialW;
+
+					  // enable casting shadows
+					  child.castShadow = true;
+					  child.receiveShadow = true;
+					  switch(child.name) {
+					  	case "H_01":
+					  	h_01 = child;
+					  	break;
+					  	
+					  	case "H_02":
+					  	h_02 = child;
+					  	break;
+					  	
+					  	case "H_03":
+					  	h_03 = child;
+					  	break;
+					  }
+					  console.log(child.name);
+					  }
+
+					  });
+					object.position.y = - 55;
+					scene.add( object );
+				}, onProgress, onError );
+
+				var coneGeometry = new THREE.ConeGeometry( 5, 20, 3 );
+				var coneMaterial = new THREE.MeshPhongMaterial( {color: 0x1ccc20, flatShading: true} );
+				cone = new THREE.Mesh( coneGeometry, coneMaterial );
+				cone.position.set( 75, 15, -65 );
+				cone.rotation.x = Math.PI ;
+				scene.add( cone );
+
+				// lights
+				var light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 1, 1, 1 );
+				scene.add( light );
+				var light = new THREE.DirectionalLight( 0x002288 );
+				light.position.set( - 1, - 1, - 1 );
+				scene.add( light );
+				var light = new THREE.AmbientLight( 0x222222 );
+				scene.add( light );
+				//
+
+				//
+				window.addEventListener( 'resize', onWindowResize, false );
+				console.log("init");
+			}
+			function onDocumentMouseMove( event ) {
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				
+			}
+			function onDocumentMouseDown( event ) {
+				raycaster.setFromCamera( mouse, camera );
+				var intersects = raycaster.intersectObjects( scene.children, true );
+				console.log(camera.position);
+				//console.log(camera.lookAt());
+				if ( intersects.length > 0 && intersects[ 0 ].object.name.charAt(0) == "H" ) {
+					if(intersects[ 0 ].object.material.color.equals( colorWhite )){
+						intersects[ 0 ].object.material = materialR;
+						console.log(intersects[ 0 ].object.name.charAt(0));
+						//console.log(Mesh406.position);
+						if (intersects[ 0 ].object.name.charAt(0) == "H" && Top ==false)
+						{
+							Top = true;
+							new TWEEN.Tween( h_01.position ).to( {y: 60}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_02.position ).to( {y: 80}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_03.position ).to( {y: 100}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( cone.position ).to( {y: 115}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( camera.position ).to( {
+								x: 260,
+								y: 168,
+								z: -323}, 3000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							x =4;
+						}
+						
+					}else
+					{
+						intersects[ 0 ].object.material = materialW;
+						if (intersects[ 0 ].object.name.charAt(0) == "H"&& Top ==true )
+						{
+
+							Top = false;
+							new TWEEN.Tween( h_01.position ).to( {y: 0}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_02.position ).to( {y: 0}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_03.position ).to( {y: 0}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( cone.position ).to( {y: 15}, 2000 )
+							.easing( TWEEN.Easing.Back.InOut).start();
+							new TWEEN.Tween( camera.position ).to( {
+								x: 235,
+								y: 23,
+								z: -379}, 1000 )
+							.easing( TWEEN.Easing.Cubic.InOut).start();
+							x =3;
+						}
+						//console.log("else");
+					}
+				} else {
+					console.log("null");
+					
+				}
+			}
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				console.log("rsize");
+			}
+			function animate() {
+				requestAnimationFrame( animate );
+				controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+				//cone.position.y = Math.sin(animate/10*Math.PI)+15;
+				//console.log(animate);
+				//console.log(cone.position.y);
+				render();
+				//console.log("animate");
+			}
+			function render() {
+				cone.rotation.y +=0.005;
+				TWEEN.update();
+				renderer.render( scene, camera );
+				x+=0.1;
+				cone.position.y += Math.sin(x)/Math.PI;
+				//console.log(cone.position.y);
+			}
+		</script>
+
+	</body>
+</html>
