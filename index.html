@@ -52,11 +52,11 @@
 			var x =0;
 			var Top = false;
 			//
-			init();
-			//render(); // remove when using next line for animation loop (requestAnimationFrame)
+			init();			
 			animate();
+
 			function init() {
-				//mouse = new THREE.Vector2();
+				
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color( 0xcccccc );
 				scene.fog = new THREE.FogExp2( 0xcccccc, 0.001 );
@@ -65,8 +65,10 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				document.body.appendChild( renderer.domElement );
+				//Event Listners
 				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				document.addEventListener( 'touchend', onDocumentTouchEnd, false );
 				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 2000 );
 				camera.position.set( 400, 200, 0 );
 				// controls
@@ -153,14 +155,15 @@
 
 				//
 				window.addEventListener( 'resize', onWindowResize, false );
-				console.log("init");
+				//console.log("init");
 			}
+
 			function onDocumentMouseMove( event ) {
 				event.preventDefault();
 				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-				
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;				
 			}
+
 			function onDocumentMouseDown( event ) {
 				raycaster.setFromCamera( mouse, camera );
 				var intersects = raycaster.intersectObjects( scene.children, true );
@@ -218,6 +221,69 @@
 					console.log("null");
 					
 				}
+			}
+			function onDocumentTouchEnd(event) {
+				event.preventDefault();
+				mouse.x = (event.changedTouches[0].clientX / window.innerWidth) * 2 - 1;
+    		mouse.y = -(event.changedTouches[0].clientY / window.innerHeight) * 2 + 1;
+
+    		raycaster.setFromCamera(mouse, camera);
+  			var intersects = raycaster.intersectObjects( scene.children, true );
+				//console.log(camera.position);
+				//console.log(camera.lookAt());
+				if ( intersects.length > 0 && intersects[ 0 ].object.name.charAt(0) == "H" ) {
+					if(intersects[ 0 ].object.material.color.equals( colorWhite )){
+						intersects[ 0 ].object.material = materialR;
+						console.log(intersects[ 0 ].object.name.charAt(0));
+						//console.log(Mesh406.position);
+						if (intersects[ 0 ].object.name.charAt(0) == "H" && Top ==false)
+						{
+							Top = true;
+							new TWEEN.Tween( h_01.position ).to( {y: 60}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_02.position ).to( {y: 80}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_03.position ).to( {y: 100}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( cone.position ).to( {y: 115}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( camera.position ).to( {
+								x: 260,
+								y: 168,
+								z: -323}, 3000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							x =4;
+						}
+						
+					}else
+					{
+						intersects[ 0 ].object.material = materialW;
+						if (intersects[ 0 ].object.name.charAt(0) == "H"&& Top ==true )
+						{
+
+							Top = false;
+							new TWEEN.Tween( h_01.position ).to( {y: 0}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_02.position ).to( {y: 0}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( h_03.position ).to( {y: 0}, 2000 )
+							.easing( TWEEN.Easing.Elastic.Out).start();
+							new TWEEN.Tween( cone.position ).to( {y: 15}, 2000 )
+							.easing( TWEEN.Easing.Back.InOut).start();
+							new TWEEN.Tween( camera.position ).to( {
+								x: 235,
+								y: 23,
+								z: -379}, 1000 )
+							.easing( TWEEN.Easing.Cubic.InOut).start();
+							x =3;
+						}
+						//console.log("else");
+					}
+				} else {
+					console.log("null");
+					
+				}
+
 			}
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;
